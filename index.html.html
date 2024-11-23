@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GUEST REGISTRATION FORM</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f9;
+      color: #333;
+    }
+
+    header {
+      background: #007bff;
+      color: #fff;
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    main {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      text-align: center;
+      color: yellow; /* Title yellow */
+      font-weight: bold; /* Title bold */
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      font-weight: bold;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    input[type="file"] {
+      border: none;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .additional-options, .payment-info, .credit-card-section {
+      background: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      display: none;
+    }
+
+    .credit-card-section h3, .summary h3 {
+      margin-bottom: 10px;
+    }
+
+    .summary {
+      background: #f4f4f9;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+  </style>
+  <script>
+    function calculatePriceAndDates() {
+      const property = document.getElementById("property").value;
+      const roomType = document.getElementById("roomType").value;
+      const days = parseInt(document.getElementById("days").value) || 0;
+      const rooms = parseInt(document.getElementById("rooms").value) || 1;
+      const additionalBed = parseInt(document.getElementById("additionalBed").value) || 0;
+      const poolAccess = parseInt(document.getElementById("poolAccess").value) || 0;
+      const parking = parseInt(document.getElementById("parking").value) || 0;
+      const checkInDate = new Date(document.getElementById("checkInDate").value);
+
+      if (!property || !roomType || !days || !rooms || !checkInDate) {
+        document.getElementById("totalPrice").value = "Complete all fields.";
+        return;
+      }
+
+      let weekdayRate = 0;
+      let weekendRate = 0;
+
+      switch (property) {
+        case "anuva":
+        case "eastbay":
+          switch (roomType) {
+            case "budget":
+              weekdayRate = 999;
+              weekendRate = 1200;
+              break;
+            case "economy":
+              weekdayRate = 1200;
+              weekendRate = 1500;
+              break;
+            case "executive":
+              weekdayRate = 2000;
+              weekendRate = 2500;
+              break;
+          }
+          break;
+        case "azure":
+          switch (roomType) {
+            case "city":
+              weekdayRate = 1500;
+              weekendRate = 2000;
+              break;
+            case "beach":
+              weekdayRate = 2000;
+              weekendRate = 2500;
+              break;
+          }
+          break;
+      }
+
+      let totalPrice = 0;
+      for (let i = 0; i < days; i++) {
+        const day = new Date(checkInDate);
+        day.setDate(checkInDate.getDate() + i);
+        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+        totalPrice += isWeekend ? weekendRate : weekdayRate;
+      }
+
+      let extraPersonCharge = 0;
+      if (additionalBed > 0) {
+        extraPersonCharge = 100 * Math.max(0, additionalBed - 2); 
+      }
+
+      let poolAccessCharge = 0;
+      if (poolAccess > 0) {
+        switch (property) {
+          case "azure":
+            poolAccessCharge = 250 * poolAccess;
+            break;
+          case "eastbay":
+            poolAccessCharge = 300 * poolAccess;
+            break;
+        }
+      }
+
+      let parkingCharge = 0;
+      if (property === "azure" && parking > 0) {
+        parkingCharge = 380 * parking;
+      }
+
+      const extras = extraPersonCharge + poolAccessCharge + parkingCharge;
+
+      document.getElementById("totalPrice").value = `₱${(totalPrice + extras) * rooms}`;
+      document.getElementById("authorizationDetails").value = `₱${(totalPrice + extras) * rooms}`;
+
+      const checkOutDate = new Date(checkInDate);
+      checkOutDate.setDate(checkOutDate.getDate() + days);
+      document.getElementById("checkOutDate").value = checkOutDate.toISOString().slice(0, 16);
+    }
+
+    function togglePaymentSection() {
+      const paymentMethod = document.getElementById("paymentMethod").value;
+      document.querySelector(".credit-card-section").style.display = paymentMethod === "creditCard" ? "block" : "none";
+      document.querySelector(".payment-info").style.display = paymentMethod !== "creditCard" ? "block" : "none";
+    }
+
+    function updateRoomTypeOptions() {
+      const property = document.getElementById("property").value;
+      const roomTypeSelect = document.getElementById("roomType");
+      roomTypeSelect.innerHTML = '<option value="">Select Room Type</option>';
+
+      if (property === "azure") {
+        roomTypeSelect.add(new Option("City View", "city"));
+        roomTypeSelect.add(new Option("Beach View", "beach"));
+      } else if (property === "anuva" || property === "eastbay") {
+        roomTypeSelect.add(new Option("Budget", "budget"));
+        roomTypeSelect.add(new Option("Economy", "economy"));
+        roomTypeSelect.add(new Option("Executive", "executive"));
+      }
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+      const totalPrice = document.getElementById("totalPrice").value;
+      if (!totalPrice || totalPrice === "Complete all fields.") {
+        alert("Please calculate the total price first.");
+        return;
+      }
+
+      const guestEmail = document.getElementById("email").value;
+      console.log(`Sending email to petraliaalex23@gmail.com and ${guestEmail}`);
+
+      const property = document.getElementById("property").value;
+      const roomType = document.getElementById("roomType").value;
+      const days = parseInt(document.getElementById("days").value) || 0;
+      const rooms = parseInt(document.getElementById("rooms").value) || 1;
+
+      document.getElementById("generatedTotalPrice").innerText = `Total Price: ${totalPrice}`;
+
+      let inclusions = `Inclusions: ${roomType} room for ${days} day(s) and ${rooms} room(s).`;
+      document.getElementById("generatedInclusions").innerText = inclusions;
+
+      document.getElementById("reservationForm").style.display = "none";
+      document.getElementById("confirmationMessage").style.display = "block";
+    }
+  </script>
+</head>
+<body>
+  <header>
+    <h1>GUEST REGISTRATION FORM</h1> 
+  </header>
+  <main>
+    <form id="reservationForm" onsubmit="handleSubmit(event)">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="guestIDs">Upload the IDs of all guests</label>
+      <input type="file" id="guestIDs" name="guestIDs" multiple> 
+
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="contact">Contact Number</label>
+      <input type="text" id="contact" name="contact" required>
+
+      <label for="checkInDate">Check-In Date and Time</label>
+      <input type="datetime-local" id="checkInDate" name="checkInDate" onchange="calculatePriceAndDates()" required>
+
+      <label for="days">Number of Days</label>
+      <input type="number" id="days" name="days" min="1" onchange="calculatePriceAndDates()" required>
+
+      <label for="checkOutDate">Check-Out Date and Time</label>
+      <input type="datetime-local" id="checkOutDate" name="checkOutDate" readonly>
+
+      <label for="rooms">Number of Rooms</label>
+      <input type="number" id="rooms" name="rooms" min="1" onchange="calculatePriceAndDates()" required>
+
+      <label for="property">Property</label>
+      <select id="property" name="property" onchange="updateRoomTypeOptions(); calculatePriceAndDates()" required>
+        <option value="">Select Property</option>
+        <option value="anuva">Anuva Residence</option>
+        <option value="azure">Azure Residence</option>
+        <option value="eastbay">Eastbay Residence</option>
+      </select>
+
+      <label for="roomType">Room Type</label>
+      <select id="roomType" name="roomType" onchange="calculatePriceAndDates()" required>
+        <option value="">Select Room Type</option> 
+      </select>
+
+      <label for="additionalBed">Additional Bed (₱100/person after 2 persons)</label>
+      <input type="number" id="additionalBed" name="additionalBed" min="0" value="0" onchange="calculatePriceAndDates()">
+
+      <label for="poolAccess">Pool Access (₱250/head Azure, Free Anuva, ₱300/head Eastbay)</label>
+      <input type="number" id="poolAccess" name="poolAccess" min="0" value="0" onchange="calculatePriceAndDates()">
+
+      <label for="parking">Parking (₱380 Car, ₱280 Motorcycle Azure)</label>
+      <input type="number" id="parking" name="parking" min="0" value="0" onchange="calculatePriceAndDates()">
+
+      <label for="paymentMethod">Payment Method</label>
+      <select id="paymentMethod" name="paymentMethod" onchange="togglePaymentSection()" required>
+        <option value="">Select Payment Method</option>
+        <option value="gcash">GCash</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="creditCard">Credit Card</option>
+      </select>
+
+      <div class="payment-info">
+        <p><strong>GCash:</strong> Kerwin Tiblan - 09193750214</p>
+        <p><strong>Bank Transfer:</strong> Kerwin J Tiblan - BDO - 004492366175</p>
+      </div>
+
+      <label for="receipt">Upload your receipt</label>
+      <input type="file" id="receipt" name="receipt">
+
+      <div class="credit-card-section">
+        <h3>Credit Card Authorization Form</h3>
+        <p><strong>Business Name:</strong> Economy Rooms</p>
+        <p><strong>Email:</strong> admin@staycationinalabang.com</p>
+
+        <label for="cardholderName">Cardholder Name</label>
+        <input type="text" id="cardholderName" name="cardholderName" required>
+
+        <label for="billingAddress">Billing Address</label>
+        <input type="text" id="billingAddress" name="billingAddress" required>
+
+        <label for="cardNumber">Card Number</label>
+        <input type="password" id="cardNumber" name="cardNumber" maxlength="16" required>
+
+        <label for="expirationDate">Expiration Date</label>
+        <input type="text" id="expirationDate" name="expirationDate" placeholder="MM/YY" required>
+
+        <label for="cvv">CVV</label>
+        <input type="password" id="cvv" name="cvv" maxlength="3" required>
+
+        <label for="authorizationDetails">Amount to Charge</label>
+        <input type="text" id="authorizationDetails" name="authorizationDetails" readonly>
+
+        <label for="paymentPurpose">Purpose of Payment</label>
+        <select id="paymentPurpose" name="paymentPurpose" required>
+          <option value="accommodation">Accommodation</option>
+          <option value="reservation">Reservation</option>
+          <option value="other">Other</option>
+        </select>
+
+        <p>
+          I, <strong>[Cardholder Name]</strong>, authorize Economy Rooms to charge the amount of PHP <strong>[Amount]</strong> to my credit card listed above for the services indicated. 
+          By signing below, I certify that I am the authorized user of the card listed above.
+        </p>
+      </div>
+
+      <div class="summary">
+        <h3>Booking Summary</h3>
+        <p>Total Price: <input type="text" id="totalPrice" name="totalPrice" readonly></p>
+        <p>Inclusions: Based on selected room type and additional services.</p>
+      </div>
+
+      <button type="submit">Submit Booking</button>
+    </form>
+
+    <div id="confirmationMessage" style="display: none;">
+      <h2>Thank You for Your Booking!</h2>
+      <p>Your booking has been successfully submitted. A confirmation email has been sent to your email address. If you have any concerns, please don't hesitate to contact us.</p>
+
+      <h3>Booking Policy</h3>
+      <ul>
+        <li>Once your appointment is confirmed and you receive the confirmation slip (sent 2-5 minutes after booking via email), your booking is considered confirmed on your preferred date and time (PAY AT THE PROPERTY).</li>
+        <li>Please don't be late. A 30-minute grace period is provided for guests who don't respond to our calls or messages.</li>
+        <li>Cancellations are free within 8 hours of booking. Coordinate with our LIVE AGENT.</li>
+        <li>A ₱500 cancellation fee applies after 8 hours.</li>
+        <li>Bookings are for 21 hours per night, starting from your appointment time. Extensions are charged ₱200/hour without prior notice.</li>
+        <li>If you expect to be late, please reschedule with our live agent via SMS/VIBER/WHATSAPP at +639155024770 / +639167391573.</li>
+        <li>Guaranteed bookings are NON-REFUNDABLE. Refer to our "How to Guarantee My Stay" guidelines for more information.</li>
+        <li>Bring 1 VALID ID for each guest. For guests under 18, a School ID or Birth Certificate is required.</li>
+      </ul>
+
+      <h3>Important Notes:</h3>
+      <ul>
+        <li>This booking covers accommodation only. Parking and pool fees are exclusive:</li>
+        <li>Anuva/Eastbay: Free for motorcycles, ₱300/night for vehicles.</li>
+        <li>Azure: ₱280 for motorcycles, ₱380/night for vehicles.</li>
+        <li>Pool fees: Free for Anuva, ₱300/head for Eastbay, and ₱250/head for Azure.</li>
+        <li>Reservation is not required for amenities usage.</li>
+        <li>Accepted payment methods: American Express, Visa, Euro/Mastercard, Diners Club, JCB, Maestro, Discover, Bankcard, UnionPay debit card, UnionPay credit card, Cash, GCASH, PAYMAYA, PAYPAL.</li>
+        <li>The posted rates already include tax and service charges.</li>
+      </ul>
+
+      <h3>OTHER IMPORTANT INFORMATION</h3>
+      <ul>
+        <li>Dedicated waiting area of the property for our guest.</li>
+        <li>Azure Residence - Gate #2</li>
+        <li>Anuva Residence - 711 Admin Office</li>
+        <li>Eastbay Residence - Starbucks located right in front of the property</li>
+        <li>Contact person, please get in touch with us 30 minutes prior to your
+ arrival</li>
+        <li>(Anuva Residence) Janet - 0915 8 48 4265</li>
+        <li>(Azure Residence) gerald - +639975611976 Ellen - 0951 891 2202</li>
+        <li>(Admin Personnel) calvin - 0916 739 1573  / 09926863988 Rina - +63 975 505 3151 Kevin - 0919 375 0214</li> 
+      </ul>
+
+      <div id="dynamicSummary">
+        <h3>Generated total price and inclusions:</h3>
+        <p id="generatedTotalPrice"></p> 
+        <p id="generatedInclusions"></p> 
+        <p>If your booking is made through our third-party partner, kindly disregard the total amount generated here. Contact our personnel for your official price generated by our partner apps. Our official WhatsApp Business account is: +639157335299</p>
+      </div>
+
+      <p>(PLEASE SCREENSHOT FOR YOUR REFERENCE)</p>
+      <p>(© 2024 Staycation in Alabang. All Rights Reserved)</p> 
+    </div>
+  </main>
+</body>
+</html>
